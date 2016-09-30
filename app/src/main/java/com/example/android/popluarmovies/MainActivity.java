@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String URL_BASE = "http://api.themoviedb.org/3/movie/";
     private static final String POPULAR = "popular?api_key=";
     private static final String TOP_RATED = "top_rated?api_key=";
-    private static final String API_KEY = "Add one yourself!";
+    private static final String API_KEY = "Put it here";
     private movieAdpter adpter;
     private SharedPreferences preferences;
     private int sort_pref;
