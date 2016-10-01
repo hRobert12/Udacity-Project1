@@ -1,7 +1,5 @@
 package com.example.android.popluarmovies;
 
-import android.util.Log;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,15 +19,22 @@ public class QueryUtils {
 
     private QueryUtils() {}
 
-    public static ArrayList<movie> extractDetails(String json) {
+    public static ArrayList<movie> extractDetails(String json, boolean list) {
         ArrayList<movie> movies = new ArrayList<>();
         try {
-            JSONObject root = new JSONObject(json);
-            JSONArray items = root.getJSONArray("results");
-            for (int i = 0; i < items.length(); i++) {
-                JSONObject currentMovie = items.getJSONObject(i);
+            if (list) {
+                JSONObject root = new JSONObject(json);
+                JSONArray items = root.getJSONArray("results");
+                for (int i = 0; i < items.length(); i++) {
+                    JSONObject currentMovie = items.getJSONObject(i);
+                    String posterPath = currentMovie.getString("poster_path");
+                    long movieID = currentMovie.getLong("id");
+                    movies.add(new movie(movieID, posterPath));
+                }
+            } else {
+                JSONObject currentMovie = new JSONObject(json);
                 String posterPath = currentMovie.getString("poster_path");
-                String movieID = currentMovie.getString("id");
+                long movieID = currentMovie.getLong("id");
                 movies.add(new movie(movieID, posterPath));
             }
         } catch (JSONException e) {

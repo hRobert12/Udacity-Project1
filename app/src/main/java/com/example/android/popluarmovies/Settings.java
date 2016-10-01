@@ -14,7 +14,6 @@ import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
-import android.preference.PreferenceManager;
 import android.preference.RingtonePreference;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
@@ -51,7 +50,7 @@ public class Settings extends AppCompatPreferenceActivity {
                     // the preference's 'entries' list.
 
                     ListPreference listPreference = (ListPreference) preference;
-                    if (listPreference != null) {
+                    if (stringValue != null) {
                         int index = listPreference.findIndexOfValue(stringValue);
 
                         // Set the summary to reflect the new value.
@@ -113,17 +112,17 @@ public class Settings extends AppCompatPreferenceActivity {
      * @see #sBindPreferenceSummaryToValueListener
      */
     private static void bindPreferenceSummaryToValue(Preference preference) {
-        // Set the listener to watch for value changes.
-        if (preference != null) {
-            preference.setOnPreferenceChangeListener(sBindPreferenceSummaryToValueListener);
-
-            // Trigger the listener immediately with the preference's
-            // current value.
-            sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
-                    PreferenceManager
-                            .getDefaultSharedPreferences(preference.getContext())
-                            .getString(preference.getKey(), ""));
-        }
+//        // Set the listener to watch for value changes.
+//        if (preference != null) {
+//            //preference.setOnPreferenceChangeListener(sBindPreferenceSummaryToValueListener);
+//
+//            // Trigger the listener immediately with the preference's
+//            // current value.
+////            sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
+////                    PreferenceManager
+////                            .getDefaultSharedPreferences(preference.getContext())
+////                            .getString(preference.getKey(), ""));
+//        }
     }
 
     @Override
@@ -197,8 +196,8 @@ public class Settings extends AppCompatPreferenceActivity {
             // to their values. When their values change, their summaries are
             // updated to reflect the new value, per the Android Design
             // guidelines.
-            bindPreferenceSummaryToValue(findPreference("example_text"));
-            bindPreferenceSummaryToValue(findPreference("sort"));
+            //bindPreferenceSummaryToValue(findPreference("example_text"));
+            //bindPreferenceSummaryToValue(findPreference("sort"));
         }
 
         @Override

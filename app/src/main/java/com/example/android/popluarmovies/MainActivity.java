@@ -1,7 +1,10 @@
 package com.example.android.popluarmovies;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -10,6 +13,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.GridView;
 
 import java.io.BufferedReader;
@@ -25,10 +30,10 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
-    private static final String URL_BASE = "http://api.themoviedb.org/3/movie/";
+    public static final String URL_BASE = "http://api.themoviedb.org/3/movie/";
     private static final String POPULAR = "popular?api_key=";
     private static final String TOP_RATED = "top_rated?api_key=";
-    private static final String API_KEY = "Put it here";
+    public static final String API_KEY = "";
     private movieAdpter adpter;
     private SharedPreferences preferences;
     private int sort_pref;
@@ -41,12 +46,29 @@ public class MainActivity extends AppCompatActivity {
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
         sort_pref = preferences.getInt("sort", 1);
 
-        GridView listView = (GridView) findViewById(R.id.listView);
+        final GridView listView = (GridView) findViewById(R.id.listView);
         adpter = new movieAdpter(this, new ArrayList());
         listView.setAdapter(adpter);
 
-        QueryAsyncTask task = new QueryAsyncTask();
-        task.execute();
+        ConnectivityManager cm =
+                (ConnectivityManager)this.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        boolean isConnected = activeNetwork != null &&
+                activeNetwork.isConnectedOrConnecting();
+
+        if (isConnected) {
+            QueryAsyncTask task = new QueryAsyncTask();
+            task.execute();
+        }
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                movie current = (movie) listView.getItemAtPosition(i);
+                startActivity(new Intent(MainActivity.this, movieDetail.class).putExtra("movieID", current.getMovieID()));
+            }
+        });
     }
 
     @Override
@@ -82,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(LOG_TAG, "Problem making the HTTP request.", e);
             }
 
-            return QueryUtils.extractDetails(jsonResponse);
+            return QueryUtils.extractDetails(jsonResponse, true);
         }
 
         @Override
@@ -169,7 +191,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         sort_pref = preferences.getInt("sort", 1);
-        QueryAsyncTask task = new QueryAsyncTask();
-        task.execute();
+
+        ConnectivityManager cm =
+                (ConnectivityManager)this.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        boolean isConnected = activeNetwork != null &&
+                activeNetwork.isConnectedOrConnecting();
+
+        if (isConnected) {
+            QueryAsyncTask task = new QueryAsyncTask();
+            task.execute();
+        }
     }
 }
