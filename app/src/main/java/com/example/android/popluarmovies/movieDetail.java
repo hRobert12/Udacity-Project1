@@ -1,11 +1,16 @@
 package com.example.android.popluarmovies;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -14,6 +19,8 @@ import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.example.android.popluarmovies.data.StaredMoviesContract;
+import com.example.android.popluarmovies.data.StaredMoviesReaderDbHelper;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
@@ -29,24 +36,69 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 
-public class movieDetail extends AppCompatActivity {
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import butterknife.Unbinder;
 
-    private static final String LOG_TAG = movieDetail.class.getSimpleName();
+public class MovieDetail extends AppCompatActivity {
+
+    private static final String LOG_TAG = MovieDetail.class.getSimpleName();
     private long movieID;
+    private String posterPath;
     private String jsonResponse;
+    private SQLiteOpenHelper dbHelper;
+    private SQLiteDatabase db;
+    @BindView(R.id.poster) ImageView poster;
+    @BindView(R.id.title) TextView title;
+    @BindView(R.id.plot) TextView plot;
+    @BindView(R.id.release_date) TextView releaseDate;
+    @BindView(R.id.vote_average) TextView voteAverage;
+    @BindView(R.id.fab) FloatingActionButton FAB;
+    @OnClick(R.id.fab) public void onFABClick() {
+        Cursor c = db.query(StaredMoviesContract.StaredMoviesColumns.TABLE_NAME,
+                new String[]{StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_POSTER,
+                        StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_ID},
+                null, null, null, null, null);
+
+        if (c.moveToFirst()) {
+            for (int i = 0; i == c.getCount(); i++) {
+                c.moveToPosition(i);
+                if (c.getLong(c.getColumnIndex(StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_ID)) != movieID) {
+                    // TODO: 10/10/2016 delete movie from table
+                    return;
+                }
+
+            }
+
+        }
+
+        ContentValues values = new ContentValues();
+        values.put(StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_ID, movieID);
+        values.put(StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_POSTER, posterPath);
+        long rowID = db.insert(StaredMoviesContract.StaredMoviesColumns.TABLE_NAME, null, values);
+
+        if (rowID != -1) {
+            FAB.setImageResource(R.drawable.ic_star_black_24dp);
+        }
+    }
+    private Unbinder unbinder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_movie_detail);
 
+        unbinder = ButterKnife.bind(this);
+
+        dbHelper = new StaredMoviesReaderDbHelper(this);
+        db = dbHelper.getWritableDatabase();
+
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {actionBar.setDisplayHomeAsUpEnabled(true);}
 
         Intent receivedIntent = getIntent();
         movieID = receivedIntent.getLongExtra("movieID", -1);
-
-        Log.i(LOG_TAG, "MovieID:" + movieID);
 
         ConnectivityManager cm =
                 (ConnectivityManager)this.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -65,10 +117,10 @@ public class movieDetail extends AppCompatActivity {
 
 
 
-    private class QueryAsyncTask extends AsyncTask<URL, Void, ArrayList<movie>> {
+    private class QueryAsyncTask extends AsyncTask<URL, Void, ArrayList<Movie>> {
 
         @Override
-        protected ArrayList<movie> doInBackground(URL... urls) {
+        protected ArrayList<Movie> doInBackground(URL... urls) {
             URL url;
             url = createUrl(MainActivity.URL_BASE + movieID + "?api_key=" + MainActivity.API_KEY);
 
@@ -84,7 +136,7 @@ public class movieDetail extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(ArrayList<movie> movies) {
+        protected void onPostExecute(ArrayList<Movie> movies) {
             if (movies == null) {
                 return;
             }
@@ -129,7 +181,7 @@ public class movieDetail extends AppCompatActivity {
                     Log.e(LOG_TAG, "Error response code: " + urlConnection.getResponseCode());
                 }
             } catch (IOException e) {
-                Log.e(LOG_TAG, "Problem retrieving the movie JSON results.", e);
+                Log.e(LOG_TAG, "Problem retrieving the Movie JSON results.", e);
             } finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();
@@ -157,12 +209,7 @@ public class movieDetail extends AppCompatActivity {
         }
     }
 
-    private void updateUi(ArrayList<movie> movies) {
-        ImageView poster = (ImageView) findViewById(R.id.poster);
-        TextView title = (TextView) findViewById(R.id.title);
-        TextView plot = (TextView) findViewById(R.id.plot);
-        TextView releaseDate = (TextView) findViewById(R.id.release_date);
-        TextView voteAverage = (TextView) findViewById(R.id.vote_average);
+    private void updateUi(ArrayList<Movie> movies) {
 
         String posterPath = null;
         String orgTitle = null;
@@ -177,14 +224,14 @@ public class movieDetail extends AppCompatActivity {
             orgTitle = currentMovie.getString("original_title");
             overview = currentMovie.getString("overview");
             releaseDateText = currentMovie.getString("release_date");
-            voteAverageText = currentMovie.getString("vote_average") + " stars";
+            voteAverageText = currentMovie.getString("vote_average") + getString(R.string.stars);
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
         if (posterPath != null) {
-            Picasso.with(this).invalidate("http://image.tmdb.org/t/p/w185" + posterPath);
             Picasso.with(this).load("http://image.tmdb.org/t/p/w185" + movies.get(0).getMoviePosterPath()).into(poster);
+            this.posterPath = posterPath;
         }
         if (orgTitle != null) {
             title.setText(orgTitle);
@@ -209,5 +256,11 @@ public class movieDetail extends AppCompatActivity {
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unbinder.unbind();
     }
 }

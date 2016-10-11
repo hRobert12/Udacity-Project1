@@ -27,27 +27,29 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.Unbinder;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
     public static final String URL_BASE = "http://api.themoviedb.org/3/movie/";
-    private static final String POPULAR = "popular?api_key=";
-    private static final String TOP_RATED = "top_rated?api_key=";
     public static final String API_KEY = "";
-    private movieAdpter adpter;
+    private MovieAdapter adpter;
     private SharedPreferences preferences;
-    private int sort_pref;
+    @BindView(R.id.listView) GridView list;
+    private Unbinder unbinder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        sort_pref = preferences.getInt("sort", 1);
+        unbinder = ButterKnife.bind(this);
 
-        final GridView listView = (GridView) findViewById(R.id.listView);
-        adpter = new movieAdpter(this, new ArrayList());
+        final GridView listView = list;
+        adpter = new MovieAdapter(this, new ArrayList());
         listView.setAdapter(adpter);
 
         ConnectivityManager cm =
@@ -65,8 +67,8 @@ public class MainActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                movie current = (movie) listView.getItemAtPosition(i);
-                startActivity(new Intent(MainActivity.this, movieDetail.class).putExtra("movieID", current.getMovieID()));
+                Movie current = (Movie) listView.getItemAtPosition(i);
+                startActivity(new Intent(MainActivity.this, MovieDetail.class).putExtra("movieID", current.getMovieID()));
             }
         });
     }
@@ -89,12 +91,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private class QueryAsyncTask extends AsyncTask<URL, Void, ArrayList<movie>> {
+    private class QueryAsyncTask extends AsyncTask<URL, Void, ArrayList<Movie>> {
 
         @Override
-        protected ArrayList<movie> doInBackground(URL... urls) {
+        protected ArrayList<Movie> doInBackground(URL... urls) {
             URL url;
-            url = createUrl(URL_BASE + (sort_pref == 1 ? POPULAR : TOP_RATED) + API_KEY);
+            url = createUrl(URL_BASE + PreferenceManager.getDefaultSharedPreferences(MainActivity.this).getString("sort", "popular") + "?api_key=" + API_KEY);
 
 
             String jsonResponse = "";
@@ -108,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(ArrayList<movie> movies) {
+        protected void onPostExecute(ArrayList<Movie> movies) {
             if (movies == null) {
                 return;
             }
@@ -154,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.e(LOG_TAG, "Error response code: " + urlConnection.getResponseCode());
                 }
             } catch (IOException e) {
-                Log.e(LOG_TAG, "Problem retrieving the movie JSON results.", e);
+                Log.e(LOG_TAG, "Problem retrieving the Movie JSON results.", e);
             } finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();
@@ -182,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateUi(ArrayList<movie> movies) {
+    private void updateUi(ArrayList<Movie> movies) {
         adpter.clear();
         adpter.addAll(movies);
     }
@@ -190,7 +192,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        sort_pref = preferences.getInt("sort", 1);
 
         ConnectivityManager cm =
                 (ConnectivityManager)this.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -203,5 +204,11 @@ public class MainActivity extends AppCompatActivity {
             QueryAsyncTask task = new QueryAsyncTask();
             task.execute();
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unbinder.unbind();
     }
 }

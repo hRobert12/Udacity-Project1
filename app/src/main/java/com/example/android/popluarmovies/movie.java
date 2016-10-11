@@ -1,12 +1,12 @@
 package com.example.android.popluarmovies;
 
 
-public class movie {
+public class Movie {
 
     private long mMovieID;
     private String mMoviePosterPath;
 
-    public movie(long ID, String poster) {
+    public Movie(long ID, String poster) {
         mMovieID = ID;
         mMoviePosterPath = poster;
     }

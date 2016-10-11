@@ -4,5 +4,5 @@
     android:id="@+id/listView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:numColumns="auto_fit"
-    tools:context="com.example.android.popluarmovies.MainActivity"/>
+    android:numColumns="2"
+    tools:context="com.example.android.popluarmovies.MainActivity" />
