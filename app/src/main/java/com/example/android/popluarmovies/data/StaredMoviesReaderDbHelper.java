@@ -8,6 +8,9 @@ import android.database.sqlite.SQLiteOpenHelper;
  * Created by Robert on 10/8/2016.
  */
 public class StaredMoviesReaderDbHelper extends SQLiteOpenHelper {
+    // If you change the database schema, you must increment the database version.
+    public static final int DATABASE_VERSION = 2;
+    public static final String DATABASE_NAME = "StaredMoviesReader.db";
     private static final String TEXT_TYPE = " TEXT";
     private static final String INTEGER_TYPE = " INTEGER";
     private static final String COMMA_SEP = ",";
@@ -18,10 +21,6 @@ public class StaredMoviesReaderDbHelper extends SQLiteOpenHelper {
             " )";
     private static final String SQL_DELETE_ENTRIES =
             "DROP TABLE IF EXISTS " + StaredMoviesContract.StaredMoviesColumns.TABLE_NAME;
-    // If you change the database schema, you must increment the database version.
-    public static final int DATABASE_VERSION = 2;
-    public static final String DATABASE_NAME = "StaredMoviesReader.db";
-
     private Context mContext;
 
     public StaredMoviesReaderDbHelper(Context context) {
