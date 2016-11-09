@@ -24,7 +24,9 @@ public class MovieDetail extends AppCompatActivity {
         setContentView(R.layout.activity_movie_detail);
 
         ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {actionBar.setDisplayHomeAsUpEnabled(true);}
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
 
         Intent receivedIntent = getIntent();
 

@@ -24,8 +24,10 @@ public class QueryUtils {
                 }
             } else {
                 JSONObject currentMovie = new JSONObject(json);
-                String posterPath = currentMovie.getString("poster_path");
-                long movieID = currentMovie.getLong("id");
+                JSONArray array = currentMovie.getJSONArray("array");
+                JSONObject details = array.getJSONObject(0);
+                String posterPath = details.getString("poster_path");
+                long movieID = details.getLong("id");
                 movies.add(new Movie(movieID, posterPath));
             }
         } catch (JSONException e) {

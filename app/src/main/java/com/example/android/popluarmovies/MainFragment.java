@@ -2,18 +2,23 @@ package com.example.android.popluarmovies;
 
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.GridView;
+
+import com.example.android.popluarmovies.data.StaredMoviesContract;
+import com.example.android.popluarmovies.data.StaredMoviesReaderDbHelper;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,30 +29,37 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnItemClick;
 import butterknife.Unbinder;
 
-import static com.example.android.popluarmovies.MainActivity.API_KEY;
 import static com.example.android.popluarmovies.R.id.listView;
 
 public class MainFragment extends Fragment {
+
+    public static final String URL_BASE = "http://api.themoviedb.org/3/movie/";
+    private static final String LOG_TAG = MainActivity.class.getSimpleName();
+    @BindView(listView)
+    GridView list;
+    private MovieAdapter adpter;
+    private Unbinder unbinder;
 
     public MainFragment() {
         // Required empty public constructor
     }
 
-    private static final String LOG_TAG = MainActivity.class.getSimpleName();
-    public static final String URL_BASE = "http://api.themoviedb.org/3/movie/";
-    private MovieAdapter adpter;
-    @BindView(listView) GridView list;
-    @OnItemClick(listView) void onItemClick(int i) {
+    @OnItemClick(listView)
+    void onItemClick(int i) {
         Movie current = (Movie) list.getItemAtPosition(i);
-        startActivity(new Intent(getActivity(), MovieDetail.class).putExtra("movieID", current.getMovieID()));
+        if (!MainActivity.twoPane) {
+            startActivity(new Intent(getActivity(), MovieDetail.class).putExtra("movieID", current.getMovieID()));
+        } else {
+            ((Callback) getActivity()).onItemSelected(current.getMovieID());
+        }
     }
-    private Unbinder unbinder;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -55,12 +67,102 @@ public class MainFragment extends Fragment {
 
     }
 
+    private void updateUi(ArrayList<Movie> movies) {
+        adpter.clear();
+        adpter.addAll(movies);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        ConnectivityManager cm =
+                (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        boolean isConnected = activeNetwork != null &&
+                activeNetwork.isConnectedOrConnecting();
+
+        if (isConnected && !PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("sort", "popular").equals("favorites")) {
+            QueryAsyncTask task = new QueryAsyncTask();
+            task.execute();
+        }
+        if (PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("sort", "popular").equals("favorites")) {
+            ArrayList<Movie> movies = new ArrayList<>();
+            SQLiteOpenHelper dbHelper = new StaredMoviesReaderDbHelper(getActivity());
+            SQLiteDatabase db = dbHelper.getReadableDatabase();
+            Cursor c = db.query(StaredMoviesContract.StaredMoviesColumns.TABLE_NAME,
+                    null, null, null, null, null, null);
+            if (c.moveToFirst()) {
+                while (c.moveToNext()) {
+                    movies.add(new Movie(c.getLong(c.getColumnIndex(StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_ID)),
+                            c.getString(c.getColumnIndex(StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_POSTER))));
+                }
+            }
+            c.close();
+            updateUi(movies);
+            adpter.notifyDataSetChanged();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        unbinder.unbind();
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+
+        View view = inflater.inflate(R.layout.fragment_main, container, false);
+
+        unbinder = ButterKnife.bind(this, view);
+
+        adpter = new MovieAdapter(getActivity(), new ArrayList());
+        if (list != null) {
+            Log.v(LOG_TAG, "GridView found and set to non-null!");
+            list.setAdapter(adpter);
+        }
+        ConnectivityManager cm =
+                (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        boolean isConnected = activeNetwork != null &&
+                activeNetwork.isConnectedOrConnecting();
+
+        if (isConnected && !PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("sort", "popular").equals("favorites")) {
+            QueryAsyncTask task = new QueryAsyncTask();
+            task.execute();
+        }
+        if (PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("sort", "popular").equals("favorites")) {
+            List<Movie> movies = new ArrayList<>();
+            SQLiteOpenHelper dbHelper = new StaredMoviesReaderDbHelper(getActivity());
+            SQLiteDatabase db = dbHelper.getReadableDatabase();
+            Cursor c = db.query(StaredMoviesContract.StaredMoviesColumns.TABLE_NAME,
+                    null, null, null, null, null, null);
+            if (c.moveToFirst()) {
+                while (c.moveToNext()) {
+                    movies.add(new Movie(c.getLong(c.getColumnIndex(StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_ID)),
+                            c.getString(c.getColumnIndex(StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_POSTER))));
+                }
+            }
+            c.close();
+        }
+
+        return view;
+    }
+
+    public interface Callback {
+        void onItemSelected(long movie);
+    }
+
     private class QueryAsyncTask extends AsyncTask<URL, Void, ArrayList<Movie>> {
 
         @Override
         protected ArrayList<Movie> doInBackground(URL... urls) {
             URL url;
-            url = createUrl(URL_BASE + PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("sort", "popular") + "?api_key=" + API_KEY);
+            url = createUrl(URL_BASE + PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("sort", "popular") + "?api_key=" + MainActivity.API_KEY);
 
 
             String jsonResponse = "";
@@ -148,75 +250,6 @@ public class MainFragment extends Fragment {
                 }
             }
             return output.toString();
-        }
-    }
-
-    private void updateUi(ArrayList<Movie> movies) {
-        adpter.clear();
-        adpter.addAll(movies);
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-
-        ConnectivityManager cm =
-                (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        boolean isConnected = activeNetwork != null &&
-                activeNetwork.isConnectedOrConnecting();
-
-        if (isConnected) {
-            QueryAsyncTask task = new QueryAsyncTask();
-            task.execute();
-        }
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        unbinder.unbind();
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-
-        return inflater.inflate(R.layout.fragment_main, container, false);
-    }
-
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-    }
-
-    @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
-        unbinder = ButterKnife.bind(getActivity());
-
-        adpter = new MovieAdapter(getActivity(), new ArrayList());
-        if (list != null) {
-            Log.v(LOG_TAG, "GridView found and set to non-null!");
-            list.setAdapter(adpter);
-        }
-        ConnectivityManager cm =
-                (ConnectivityManager)getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        boolean isConnected = activeNetwork != null &&
-                activeNetwork.isConnectedOrConnecting();
-
-        if (isConnected) {
-            QueryAsyncTask task = new QueryAsyncTask();
-            task.execute();
         }
     }
 }
