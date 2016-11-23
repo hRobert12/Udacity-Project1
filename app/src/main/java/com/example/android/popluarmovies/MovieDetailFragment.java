@@ -27,8 +27,8 @@ import com.squareup.picasso.Picasso;
 import org.androidannotations.annotations.Background;
 import org.androidannotations.annotations.EFragment;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
+import org.parceler.Parcels;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -39,6 +39,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -63,6 +64,10 @@ public class MovieDetailFragment extends Fragment {
     FloatingActionButton FAB;
     @BindView(R.id.videos)
     ListView videoList;
+    @BindView(R.id.reviews)
+    ListView reviewList;
+    ArrayList<String> videos;
+    ArrayList<Bundle> reviews;
     private long movieID;
     private String posterPath;
     private String jsonResponse;
@@ -71,6 +76,7 @@ public class MovieDetailFragment extends Fragment {
     private Unbinder unbinder;
     private boolean isDone;
     private VideoAdapter videoAdapter;
+    private ReviewAdapter reviewAdapter;
 
     public MovieDetailFragment() {
         // Required empty public constructor
@@ -121,62 +127,84 @@ public class MovieDetailFragment extends Fragment {
 
     private void updateUi(ArrayList<Movie> movies) {
 
-        String posterPath = null;
-        String orgTitle = null;
-        String overview = null;
-        String releaseDateText = null;
-        String voteAverageText = null;
-        ArrayList<String> videos = new ArrayList<>();
+        if (isAdded()) {
 
-        JSONObject currentMovie;
-        try {
-            currentMovie = new JSONObject(jsonResponse);
-            JSONArray array = currentMovie.getJSONArray("array");
-            JSONObject details = array.getJSONObject(0);
-            posterPath = details.getString("poster_path");
-            orgTitle = details.getString("original_title");
-            overview = details.getString("overview");
-            releaseDateText = details.getString("release_date");
-            voteAverageText = details.getString("vote_average") + getString(R.string.stars);
-            JSONObject vids = array.getJSONObject(2);
-            JSONArray videoArray = vids.getJSONArray("results");
-            for (int i = 0; i < videoArray.length(); i++) {
-                videos.add("https://youtube.com/watch?v=" + videoArray.getJSONObject(i).getString("key"));
+            String posterPath = null;
+            String orgTitle = null;
+            String overview = null;
+            String releaseDateText = null;
+            String voteAverageText = null;
+            videos = new ArrayList<>();
+            reviews = new ArrayList<>();
+
+            JSONObject currentMovie;
+            try {
+                currentMovie = new JSONObject(jsonResponse);
+                JSONArray array = currentMovie.getJSONArray("array");
+                JSONObject details = array.getJSONObject(0);
+                posterPath = details.getString("poster_path");
+                orgTitle = details.getString("original_title");
+                overview = details.getString("overview");
+                releaseDateText = details.getString("release_date");
+                voteAverageText = details.getString("vote_average") + getString(R.string.stars);
+                JSONObject vids = array.getJSONObject(2);
+                JSONArray videoArray = vids.getJSONArray("results");
+                for (int i = 0; i < videoArray.length(); i++) {
+                    videos.add("https://youtube.com/watch?v=" + videoArray.getJSONObject(i).getString("key"));
+                }
+                JSONObject reviewsJSON = array.getJSONObject(1);
+                JSONArray reviewsArray = reviewsJSON.getJSONArray("results");
+                for (int i = 0; i < reviewsArray.length(); i++) {
+                    Bundle detailsBundle = new Bundle();
+                    detailsBundle.putString("author", reviewsArray.getJSONObject(i).getString("author"));
+                    detailsBundle.putString("content", reviewsArray.getJSONObject(i).getString("content"));
+                    reviews.add(detailsBundle);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
 
-        if (posterPath != null) {
-            Picasso.with(getActivity()).load("http://image.tmdb.org/t/p/w185" + posterPath).into(poster);
-            this.posterPath = posterPath;
-        }
-        if (orgTitle != null) {
-            title.setText(orgTitle);
-        }
-        if (overview != null) {
-            plot.setText(overview);
-        }
-        if (releaseDateText != null) {
-            releaseDate.setText(releaseDateText);
-        }
-        if (voteAverageText != null) {
-            voteAverage.setText(voteAverageText);
-        }
-        if (videos != null && !videos.isEmpty()) {
-            videoAdapter = new VideoAdapter(getActivity(), videos);
-            videoList.setAdapter(videoAdapter);
+            if (posterPath != null) {
+                Picasso.with(getActivity()).load("http://image.tmdb.org/t/p/w185" + posterPath).into(poster);
+                this.posterPath = posterPath;
+            }
+            if (orgTitle != null) {
+                title.setText(orgTitle);
+            }
+            if (overview != null) {
+                plot.setText(overview);
+            }
+            if (releaseDateText != null) {
+                releaseDate.setText(releaseDateText);
+            }
+            if (voteAverageText != null) {
+                voteAverage.setText(voteAverageText);
+            }
+            if (videos != null && !videos.isEmpty()) {
+                videoAdapter = new VideoAdapter(getActivity(), videos);
+                videoList.setAdapter(videoAdapter);
+            }
+            if (reviews != null && !reviews.isEmpty()) {
+                reviewAdapter = new ReviewAdapter(getActivity(), reviews);
+                reviewList.setAdapter(reviewAdapter);
+            }
         }
     }
 
     public void updateUIFromInstanceState(Bundle savedInstanceState) {
-        if (savedInstanceState.getString("posterPath") != null) {
-            Picasso.with(getActivity()).load("http://image.tmdb.org/t/p/w185" + movieID).into(poster);
+        if (isAdded()) {
+            if (savedInstanceState.getString("posterPath") != null) {
+                Picasso.with(getActivity()).load(savedInstanceState.getString("posterPath")).into(poster);
+            }
+            title.setText(savedInstanceState.getString("title"));
+            plot.setText(savedInstanceState.getString("plot"));
+            releaseDate.setText(savedInstanceState.getString("release_date"));
+            voteAverage.setText(savedInstanceState.getString("vote_avarge"));
+            videoAdapter = new VideoAdapter(getActivity(), (List) Parcels.unwrap(savedInstanceState.getParcelable("videos")));
+            videoList.setAdapter(videoAdapter);
+            reviewAdapter = new ReviewAdapter(getActivity(), (List) Parcels.unwrap(savedInstanceState.getParcelable("reviews")));
+            reviewList.setAdapter(reviewAdapter);
         }
-        title.setText(savedInstanceState.getString("title"));
-        plot.setText(savedInstanceState.getString("plot"));
-        releaseDate.setText(savedInstanceState.getString("release_date"));
-        voteAverage.setText(savedInstanceState.getString("vote_avarge"));
     }
 
     @Override
@@ -184,17 +212,6 @@ public class MovieDetailFragment extends Fragment {
         super.onDestroy();
         unbinder.unbind();
     }
-
-//    @Override
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//        switch (item.getItemId()) {
-//            case android.R.id.home:
-//                NavUtils.navigateUpFromSameTask(getActivity());
-//                return true;
-//            default:
-//                return super.onOptionsItemSelected(item);
-//        }
-//    }
 
     private boolean isMovieInDatabase(long movieID) {
         Cursor c = db.query(StaredMoviesContract.StaredMoviesColumns.TABLE_NAME,
@@ -274,6 +291,8 @@ public class MovieDetailFragment extends Fragment {
         outState.putString("release_date", releaseDate.getText().toString());
         outState.putString("vote_avarge", voteAverage.getText().toString());
         outState.putString("posterPath", posterPath);
+        outState.putParcelable("videos", Parcels.wrap(videos));
+        outState.putParcelable("reviews", Parcels.wrap(reviews));
 
         super.onSaveInstanceState(outState);
     }

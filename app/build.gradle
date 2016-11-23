@@ -32,6 +32,8 @@ dependencies {
     compile 'com.google.code.gson:gson:2.7'
     apt "org.androidannotations:androidannotations:4.1.0"
     compile "org.androidannotations:androidannotations:4.1.0"
+    compile 'org.parceler:parceler-api:1.1.6'
+    apt 'org.parceler:parceler:1.1.6'
 }
 
 repositories {

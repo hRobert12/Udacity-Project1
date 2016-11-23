@@ -1,26 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:id="@+id/review_container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
 
     <TextView
-        android:text="X wrote:"
+        android:id="@+id/author"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/textView2"
-        android:textSize="@dimen/large_text"
-        android:paddingStart="32dp"
         android:paddingLeft="32dp"
+        android:paddingStart="32dp"
+        android:text="X wrote:"
+        android:textSize="@dimen/large_text"
         android:textStyle="normal|bold" />
 
     <TextView
-        android:text="The review of X"
+        android:id="@+id/review_contents"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/textView3"
-        android:textSize="@dimen/large_text"
-        android:paddingStart="64dp"
-        android:paddingLeft="64dp"
+        android:paddingBottom="16dp"
         android:paddingEnd="64dp"
-        android:paddingRight="64dp" />
+        android:paddingLeft="64dp"
+        android:paddingRight="64dp"
+        android:paddingStart="64dp"
+        android:paddingTop="32dp"
+        android:text="The review of X"
+        android:textSize="@dimen/large_text" />
 </LinearLayout>

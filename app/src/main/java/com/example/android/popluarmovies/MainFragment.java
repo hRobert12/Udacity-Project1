@@ -20,6 +20,8 @@ import android.widget.GridView;
 import com.example.android.popluarmovies.data.StaredMoviesContract;
 import com.example.android.popluarmovies.data.StaredMoviesReaderDbHelper;
 
+import org.parceler.Parcels;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,6 +46,7 @@ public class MainFragment extends Fragment {
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
     @BindView(listView)
     GridView list;
+    ArrayList<Movie> movies;
     private MovieAdapter adpter;
     private Unbinder unbinder;
 
@@ -88,7 +91,7 @@ public class MainFragment extends Fragment {
             task.execute();
         }
         if (PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("sort", "popular").equals("favorites")) {
-            ArrayList<Movie> movies = new ArrayList<>();
+            movies = new ArrayList<>();
             SQLiteOpenHelper dbHelper = new StaredMoviesReaderDbHelper(getActivity());
             SQLiteDatabase db = dbHelper.getReadableDatabase();
             Cursor c = db.query(StaredMoviesContract.StaredMoviesColumns.TABLE_NAME,
@@ -131,26 +134,43 @@ public class MainFragment extends Fragment {
         boolean isConnected = activeNetwork != null &&
                 activeNetwork.isConnectedOrConnecting();
 
-        if (isConnected && !PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("sort", "popular").equals("favorites")) {
-            QueryAsyncTask task = new QueryAsyncTask();
-            task.execute();
-        }
-        if (PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("sort", "popular").equals("favorites")) {
-            List<Movie> movies = new ArrayList<>();
-            SQLiteOpenHelper dbHelper = new StaredMoviesReaderDbHelper(getActivity());
-            SQLiteDatabase db = dbHelper.getReadableDatabase();
-            Cursor c = db.query(StaredMoviesContract.StaredMoviesColumns.TABLE_NAME,
-                    null, null, null, null, null, null);
-            if (c.moveToFirst()) {
-                while (c.moveToNext()) {
-                    movies.add(new Movie(c.getLong(c.getColumnIndex(StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_ID)),
-                            c.getString(c.getColumnIndex(StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_POSTER))));
-                }
+
+        if (savedInstanceState == null || adpter.getCount() == 0) {
+            if (isConnected && !PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("sort", "popular").equals("favorites")) {
+                QueryAsyncTask task = new QueryAsyncTask();
+                task.execute();
             }
-            c.close();
+            if (PreferenceManager.getDefaultSharedPreferences(getActivity()).getString("sort", "popular").equals("favorites")) {
+                List<Movie> movies = new ArrayList<>();
+                SQLiteOpenHelper dbHelper = new StaredMoviesReaderDbHelper(getActivity());
+                SQLiteDatabase db = dbHelper.getReadableDatabase();
+                Cursor c = db.query(StaredMoviesContract.StaredMoviesColumns.TABLE_NAME,
+                        null, null, null, null, null, null);
+                if (c.moveToFirst()) {
+                    while (c.moveToNext()) {
+                        movies.add(new Movie(c.getLong(c.getColumnIndex(StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_ID)),
+                                c.getString(c.getColumnIndex(StaredMoviesContract.StaredMoviesColumns.COLUMN_NAME_MOVIE_POSTER))));
+                    }
+                }
+                c.close();
+            }
+        } else {
+            updateUiFromInstanceState(savedInstanceState);
         }
 
         return view;
+    }
+
+    private void updateUiFromInstanceState(Bundle IS) {
+        movies = Parcels.unwrap(IS.getParcelable("movies"));
+        updateUi(movies);
+        adpter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putParcelable("movies", Parcels.wrap(movies));
+        super.onSaveInstanceState(outState);
     }
 
     public interface Callback {
@@ -183,7 +203,7 @@ public class MainFragment extends Fragment {
             if (movies == null) {
                 return;
             }
-
+            MainFragment.this.movies = movies;
             updateUi(movies);
             adpter.notifyDataSetChanged();
         }
