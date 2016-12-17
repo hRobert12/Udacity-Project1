@@ -200,10 +200,18 @@ public class MovieDetailFragment extends Fragment {
             plot.setText(savedInstanceState.getString("plot"));
             releaseDate.setText(savedInstanceState.getString("release_date"));
             voteAverage.setText(savedInstanceState.getString("vote_avarge"));
-            videoAdapter = new VideoAdapter(getActivity(), (List) Parcels.unwrap(savedInstanceState.getParcelable("videos")));
-            videoList.setAdapter(videoAdapter);
-            reviewAdapter = new ReviewAdapter(getActivity(), (List) Parcels.unwrap(savedInstanceState.getParcelable("reviews")));
-            reviewList.setAdapter(reviewAdapter);
+            if ((Parcels.unwrap(savedInstanceState.getParcelable("videos")) != null)) {
+                videoAdapter = new VideoAdapter(getActivity(), (List) Parcels.unwrap(savedInstanceState.getParcelable("videos")));
+                if (videoAdapter.getCount() != 0) {
+                    videoList.setAdapter(videoAdapter);
+                }
+            }
+            if ((Parcels.unwrap(savedInstanceState.getParcelable("reviews")) != null)) {
+                reviewAdapter = new ReviewAdapter(getActivity(), (List) Parcels.unwrap(savedInstanceState.getParcelable("reviews")));
+                if (reviewAdapter.getCount() != 0) {
+                    reviewList.setAdapter(reviewAdapter);
+                }
+            }
         }
     }
 
